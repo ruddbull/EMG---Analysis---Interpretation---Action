@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMG Analyser — Lower Limb</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2230;--surface3:#222d3d;
+  --border:rgba(99,179,237,0.1);--border2:rgba(99,179,237,0.2);
+  --teal:#38c9b0;--teal-dim:rgba(56,201,176,0.1);
+  --blue:#63b3ed;--blue-dim:rgba(99,179,237,0.1);
+  --amber:#f6ad55;--amber-dim:rgba(246,173,85,0.1);
+  --red:#fc8181;--red-dim:rgba(252,129,129,0.1);
+  --green:#68d391;--green-dim:rgba(104,211,145,0.08);
+  --purple:#b794f4;--purple-dim:rgba(183,148,244,0.1);
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(56,201,176,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(56,201,176,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* LAYOUT */
+.app{position:relative;z-index:1;display:flex;height:100vh;}
+.sidebar{width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.main::-webkit-scrollbar{width:5px;}
+.main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* SIDEBAR */
+.logo{padding:20px 16px 14px;border-bottom:1px solid var(--border);}
+.logo-badge{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--teal);background:var(--teal-dim);border:1px solid rgba(56,201,176,0.2);padding:2px 7px;border-radius:3px;display:inline-block;margin-bottom:8px;}
+.logo h1{font-size:14px;font-weight:600;line-height:1.3;}
+.logo p{font-size:11px;color:var(--text3);margin-top:3px;}
+
+.nav{padding:14px 10px;flex:1;overflow-y:auto;}
+.nav::-webkit-scrollbar{width:3px;}
+.nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.nav-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--text3);padding:0 6px;margin-bottom:5px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;margin-bottom:2px;transition:all .15s;border:1px solid transparent;}
+.nav-item:hover{background:var(--surface2);}
+.nav-item.active{background:var(--teal-dim);border-color:rgba(56,201,176,0.2);}
+.nav-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.nav-text{font-size:11px;color:var(--text2);}
+.nav-item.active .nav-text{color:var(--teal);font-weight:500;}
+.nav-divider{height:1px;background:var(--border);margin:10px 6px;}
+
+.sidebar-bottom{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.sb-btn{width:100%;padding:7px;border-radius:6px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;cursor:pointer;transition:all .15s;border:1px solid var(--border2);background:transparent;color:var(--text3);}
+.sb-btn:hover{background:var(--surface2);color:var(--text2);}
+.sb-btn.primary{background:var(--teal-dim);border-color:rgba(56,201,176,0.3);color:var(--teal);}
+.sb-btn.primary:hover{background:rgba(56,201,176,0.18);}
+
+/* API KEY SCREEN */
+.api-screen{flex:1;display:flex;align-items:center;justify-content:center;padding:40px;}
+.api-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;max-width:480px;width:100%;}
+.api-card h2{font-size:18px;font-weight:600;margin-bottom:8px;}
+.api-card p{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:6px;}
+.api-card a{color:var(--teal);text-decoration:none;}
+.api-card a:hover{text-decoration:underline;}
+.api-input-wrap{margin-top:20px;display:flex;flex-direction:column;gap:10px;}
+.api-input{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;color:var(--text);font-family:var(--mono);font-size:12px;width:100%;outline:none;transition:border-color .15s;}
+.api-input:focus{border-color:rgba(56,201,176,0.4);}
+.api-input::placeholder{color:var(--text3);}
+.api-submit{padding:10px 20px;background:var(--teal-dim);border:1px solid rgba(56,201,176,0.3);border-radius:6px;color:var(--teal);font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.06em;cursor:pointer;transition:all .15s;}
+.api-submit:hover{background:rgba(56,201,176,0.18);}
+.api-warning{font-size:11px;color:var(--amber);background:var(--amber-dim);border:1px solid rgba(246,173,85,0.2);border-radius:6px;padding:8px 12px;margin-top:8px;}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.tab{padding:12px 20px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--text2);}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+
+/* CONTENT PANELS */
+.panel{flex:1;padding:28px 36px;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* UPLOAD SECTION */
+.upload-area{border:1.5px dashed var(--border2);border-radius:10px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px;}
+.upload-area:hover,.upload-area.drag{border-color:rgba(56,201,176,0.4);background:var(--teal-dim);}
+.upload-icon{font-size:28px;margin-bottom:10px;}
+.upload-title{font-size:14px;font-weight:500;margin-bottom:6px;}
+.upload-sub{font-size:12px;color:var(--text3);}
+.upload-input{display:none;}
+
+/* CONTEXT FORM */
+.context-form{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--text3);}
+.form-select,.form-input{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:var(--sans);font-size:12px;outline:none;transition:border-color .15s;}
+.form-select:focus,.form-input:focus{border-color:rgba(56,201,176,0.4);}
+.form-input::placeholder{color:var(--text3);}
+
+/* UPLOADED IMAGES */
+.images-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px;}
+.img-thumb{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;}
+.img-thumb img{width:100%;display:block;height:130px;object-fit:cover;}
+.img-thumb-label{padding:6px 8px;font-size:10px;color:var(--text2);font-family:var(--mono);}
+.img-remove{position:absolute;top:5px;right:5px;width:20px;height:20px;background:rgba(0,0,0,0.7);border:none;border-radius:50%;color:var(--red);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
+
+/* ANALYSE BTN */
+.analyse-btn{padding:12px 28px;background:var(--teal-dim);border:1px solid rgba(56,201,176,0.35);border-radius:8px;color:var(--teal);font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.08em;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+.analyse-btn:hover{background:rgba(56,201,176,0.18);border-color:rgba(56,201,176,0.5);}
+.analyse-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* LOADING */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;gap:16px;}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:12px;color:var(--text3);font-family:var(--mono);}
+.loading-steps{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.loading-step{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:8px;}
+.loading-step.done{color:var(--teal);}
+.loading-step.active{color:var(--text2);}
+
+/* RESULTS */
+.results{display:flex;flex-direction:column;gap:20px;}
+
+.summary-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:0 10px 10px 0;padding:20px 24px;}
+.summary-card h3{font-size:13px;font-weight:600;color:var(--teal);margin-bottom:10px;font-family:var(--mono);letter-spacing:.06em;}
+.summary-text{font-size:13px;color:var(--text2);line-height:1.8;}
+
+.actions-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;}
+.actions-card h3{font-size:13px;font-weight:600;margin-bottom:14px;font-family:var(--mono);letter-spacing:.06em;color:var(--amber);}
+.action-item{display:flex;gap:12px;margin-bottom:12px;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);}
+.action-priority{flex-shrink:0;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:500;font-family:var(--mono);height:fit-content;}
+.p-high{background:var(--red-dim);color:var(--red);border:1px solid rgba(252,129,129,0.2);}
+.p-med{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(246,173,85,0.2);}
+.p-low{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(99,179,237,0.2);}
+.action-content{}
+.action-title{font-size:12px;font-weight:600;margin-bottom:3px;}
+.action-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+
+.full-report-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.report-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.report-header h3{font-size:13px;font-weight:600;font-family:var(--mono);letter-spacing:.06em;color:var(--purple);}
+.report-toggle{padding:6px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--mono);transition:all .15s;}
+.report-toggle:hover{background:var(--surface2);color:var(--text2);}
+.report-body{padding:20px 24px;display:none;}
+.report-body.open{display:block;}
+.report-section{margin-bottom:20px;}
+.report-section h4{font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.report-text{font-size:12px;color:var(--text2);line-height:1.8;}
+.report-flag{display:flex;gap:10px;margin-bottom:8px;padding:10px 12px;background:var(--surface2);border-radius:6px;border-left:2px solid;}
+.flag-red{border-left-color:var(--red);}
+.flag-amber{border-left-color:var(--amber);}
+.flag-green{border-left-color:var(--green);}
+
+/* DECISION TREE TAB */
+.tree-panel{padding:28px 36px;}
+.step-block{margin-bottom:24px;animation:fadeIn .2s ease;}
+.step-hdr{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;}
+.step-num{font-family:var(--mono);font-size:10px;color:var(--text3);}
+.step-title{font-size:13px;font-weight:500;color:var(--text2);}
+.chips{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{padding:6px 13px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text2);transition:all .15s;}
+.chip:hover{background:var(--surface2);border-color:rgba(99,179,237,0.3);color:var(--text);}
+.chip.active{background:var(--teal-dim);border-color:rgba(56,201,176,0.4);color:var(--teal);font-weight:500;}
+.divider-line{height:1px;background:var(--border);margin:6px 0 24px;}
+
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:8px;}
+.metric-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;}
+.metric-name{font-size:13px;font-weight:600;}
+.phase-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.phase-tag{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:8px;border:1px solid;}
+.metric-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-top:5px;}
+.lit-ref{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:7px;padding-top:7px;border-top:1px solid var(--border);}
+.metric-tag{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:500;font-family:var(--mono);}
+.tag-primary{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(99,179,237,0.2);}
+.tag-secondary{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(246,173,85,0.2);}
+.tag-watch{background:var(--red-dim);color:var(--red);border:1px solid rgba(252,129,129,0.2);}
+.phase-primary{background:rgba(99,179,237,0.06);color:var(--blue);border-color:rgba(99,179,237,0.15);}
+.phase-secondary{background:rgba(246,173,85,0.06);color:var(--amber);border-color:rgba(246,173,85,0.15);}
+.phase-watch{background:rgba(252,129,129,0.06);color:var(--red);border-color:rgba(252,129,129,0.15);}
+.group-label{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.group-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.modifier-box{border-left:3px solid;border-radius:0 6px 6px 0;padding:10px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px;}
+.empty-msg{font-size:13px;color:var(--text3);font-style:italic;padding:20px 0;}
+
+.error-box{background:var(--red-dim);border:1px solid rgba(252,129,129,0.2);border-radius:8px;padding:14px 16px;font-size:12px;color:var(--red);margin-top:12px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-badge">EMG · LOWER LIMB</div>
+    <h1>EMG Analyser</h1>
+    <p id="org-label">Enter API key to begin</p>
+  </div>
+  <div class="nav" id="sidebar-nav">
+    <div class="nav-label">TOOLS</div>
+    <div class="nav-item active" onclick="showTab('analyse',this)" id="nav-analyse">
+      <div class="nav-dot" style="background:var(--teal)"></div>
+      <div class="nav-text">Analyse EMG charts</div>
+    </div>
+    <div class="nav-item" onclick="showTab('tree',this)" id="nav-tree">
+      <div class="nav-dot" style="background:var(--blue)"></div>
+      <div class="nav-text">Decision tree</div>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-label">INJURY TYPE</div>
+    <div class="nav-item" data-injury="quad" onclick="treeNav('quad',this)">
+      <div class="nav-dot" style="background:var(--blue)"></div>
+      <div class="nav-text">Quadriceps (RF / VL / VM)</div>
+    </div>
+    <div class="nav-item" data-injury="hamstring" onclick="treeNav('hamstring',this)">
+      <div class="nav-dot" style="background:var(--amber)"></div>
+      <div class="nav-text">Hamstrings (BFLH / ST / SM)</div>
+    </div>
+    <div class="nav-item" data-injury="acl" onclick="treeNav('acl',this)">
+      <div class="nav-dot" style="background:var(--red)"></div>
+      <div class="nav-text">ACL / Knee ligament</div>
+    </div>
+    <div class="nav-item" data-injury="pf" onclick="treeNav('pf',this)">
+      <div class="nav-dot" style="background:var(--purple)"></div>
+      <div class="nav-text">Patellofemoral / Patellar tendon</div>
+    </div>
+    <div class="nav-item" data-injury="adductor" onclick="treeNav('adductor',this)">
+      <div class="nav-dot" style="background:var(--green)"></div>
+      <div class="nav-text">Adductors / Groin</div>
+    </div>
+    <div class="nav-item" data-injury="calf" onclick="treeNav('calf',this)">
+      <div class="nav-dot" style="background:var(--teal)"></div>
+      <div class="nav-text">Calf / Achilles</div>
+    </div>
+  </div>
+  <div class="sidebar-bottom">
+    <button class="sb-btn" onclick="resetAll()">↺ Reset all</button>
+    <button class="sb-btn" onclick="showApiScreen()">⚙ Change API key</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main-area">
+  <!-- API KEY SCREEN (shown first) -->
+  <div id="api-screen" class="api-screen">
+    <div class="api-card">
+      <h2>Enter your API key</h2>
+      <p>This tool uses Claude AI to interpret your EMG charts. Your key is stored only in your browser memory and never sent anywhere except Anthropic's API.</p>
+      <p>Get your key at <a href="https://platform.claude.com" target="_blank">platform.claude.com</a> → API Keys.</p>
+      <div class="api-warning">⚠ Never share your API key with anyone. It stays on your machine only.</div>
+      <div class="api-input-wrap">
+        <input class="api-input" type="password" id="api-key-input" placeholder="sk-ant-api03-..." autocomplete="off">
+        <input class="api-input" type="text" id="athlete-name-global" placeholder="Athlete name (optional, e.g. Saif)" autocomplete="off">
+        <button class="api-submit" onclick="saveApiKey()">CONTINUE →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SCREEN (hidden until key entered) -->
+  <div id="app-screen" style="display:none;flex:1;flex-direction:column;height:100%;">
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" id="tab-analyse" onclick="switchTab('analyse')">📊 Analyse charts</div>
+      <div class="tab" id="tab-tree" onclick="switchTab('tree')">🌳 Decision tree</div>
+    </div>
+
+    <!-- ANALYSE PANEL -->
+    <div id="panel-analyse" class="panel" style="overflow-y:auto;">
+
+      <!-- Upload area -->
+      <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFiles(event)">
+        <div class="upload-icon">📂</div>
+        <div class="upload-title">Drop EMG charts here or click to upload</div>
+        <div class="upload-sub">PNG, JPG, PDF pages — upload multiple images for a full session analysis</div>
+        <input type="file" id="file-input" class="upload-input" multiple accept="image/*,.pdf" onchange="handleFiles(this.files)">
+      </div>
+
+      <!-- Uploaded images -->
+      <div id="images-grid" class="images-grid"></div>
+
+      <!-- Context form -->
+      <div class="context-form" id="context-form" style="display:none">
+
+        <!-- SECTION 1: Athlete -->
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--teal);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">01 — ATHLETE</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>ATHLETE NAME</label>
+            <input class="form-input" type="text" id="ctx-athlete" placeholder="e.g. Saif">
+          </div>
+          <div class="form-group">
+            <label>REPORT AUDIENCE</label>
+            <select class="form-select" id="ctx-audience">
+              <option value="coach">Coach / non-expert</option>
+              <option value="physio">Physio / clinician</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SECTION 2: Injury profile -->
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--teal);margin:14px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">02 — INJURY PROFILE</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>INJURY TYPE</label>
+            <select class="form-select" id="ctx-injury-type" onchange="updateMuscles()">
+              <option value="">Select injury type...</option>
+              <option value="Muscle tear / strain">Muscle tear / strain</option>
+              <option value="Tendinopathy">Tendinopathy</option>
+              <option value="Ligament sprain / rupture">Ligament sprain / rupture (ACL/MCL/LCL)</option>
+              <option value="Contusion">Contusion / direct impact</option>
+              <option value="Post-surgical">Post-surgical</option>
+              <option value="Chronic overuse">Chronic overuse</option>
+              <option value="No injury — screening">No injury — screening / prevention</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>INJURED / FOCUS MUSCLE</label>
+            <select class="form-select" id="ctx-muscle">
+              <option value="">Select muscle...</option>
+              <option value="Rectus Femoris (RF)">Rectus Femoris (RF)</option>
+              <option value="Vastus Lateralis (VL)">Vastus Lateralis (VL)</option>
+              <option value="Vastus Medialis (VM)">Vastus Medialis (VM)</option>
+              <option value="Biceps Femoris Long Head (BFLH)">Biceps Femoris Long Head (BFLH)</option>
+              <option value="Semitendinosus (ST)">Semitendinosus (ST)</option>
+              <option value="Semimembranosus (SM)">Semimembranosus (SM)</option>
+              <option value="Gastrocnemius">Gastrocnemius</option>
+              <option value="Adductor Longus">Adductor Longus</option>
+              <option value="Multiple / unknown">Multiple / unknown</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>INJURED LEG</label>
+            <select class="form-select" id="ctx-leg">
+              <option value="">Select leg...</option>
+              <option value="Right leg">Right leg</option>
+              <option value="Left leg">Left leg</option>
+              <option value="Bilateral">Bilateral</option>
+              <option value="No injury — bilateral screening">No injury — bilateral screening</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>INJURY MECHANISM</label>
+            <select class="form-select" id="ctx-mechanism">
+              <option value="">Select mechanism...</option>
+              <option value="Eccentric overload (sprint / decel)">Eccentric overload (sprint / decel)</option>
+              <option value="Kicking / explosive extension">Kicking / explosive extension</option>
+              <option value="Non-contact landing / cutting">Non-contact landing / cutting</option>
+              <option value="Contact / direct impact">Contact / direct impact</option>
+              <option value="Chronic repetitive load">Chronic repetitive load</option>
+              <option value="Post-surgical">Post-surgical</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>TIME SINCE INJURY</label>
+            <select class="form-select" id="ctx-time">
+              <option value="">Select timeframe...</option>
+              <option value="Acute (0–7 days)">Acute (0–7 days)</option>
+              <option value="Sub-acute (1–4 weeks)">Sub-acute (1–4 weeks)</option>
+              <option value="Early rehabilitation (4–8 weeks)">Early rehabilitation (4–8 weeks)</option>
+              <option value="Late rehabilitation (8–16 weeks)">Late rehabilitation (8–16 weeks)</option>
+              <option value="Return to sport phase (>4 months)">Return to sport phase (>4 months)</option>
+              <option value="Fully recovered / screening">Fully recovered / screening</option>
+              <option value="Chronic / recurrent">Chronic / recurrent</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>INJURY HISTORY</label>
+            <select class="form-select" id="ctx-history">
+              <option value="First occurrence">First occurrence</option>
+              <option value="Recurrent injury (same site)">Recurrent injury (same site)</option>
+              <option value="Contralateral previous injury">Contralateral previous injury</option>
+              <option value="Multiple prior injuries">Multiple prior injuries</option>
+              <option value="No prior injury">No prior injury</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SECTION 3: Test -->
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--teal);margin:14px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">03 — MOVEMENT & PHASE</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>MOVEMENT TESTED</label>
+            <select class="form-select" id="ctx-movement" onchange="updatePhases()">
+              <option value="">Select movement...</option>
+              <option value="CMJ">CMJ (Counter Movement Jump)</option>
+              <option value="SJ">SJ (Squat Jump)</option>
+              <option value="DVJ">DVJ (Drop Vertical Jump)</option>
+              <option value="Nordic">Nordic Hamstring</option>
+              <option value="Nordbord">ISO-Prone / Nordbord</option>
+              <option value="Sprint">Sprint / Acceleration</option>
+              <option value="CoD">Change of Direction</option>
+              <option value="Multiple">Multiple / Full session</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ADDITIONAL CONTEXT</label>
+            <input class="form-input" type="text" id="ctx-notes" placeholder="e.g. first session back, post-match fatigue">
+          </div>
+        </div>
+        <div class="form-row" id="phase-row" style="display:none">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>PHASES TO ANALYSE (select all that apply)</label>
+            <div id="phase-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;justify-content:flex-end">
+          <button class="analyse-btn" id="analyse-btn" onclick="runAnalysis()">
+            <span>⚡</span> ANALYSE
+          </button>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div id="error-box" class="error-box" style="display:none"></div>
+
+      <!-- Loading -->
+      <div id="loading-block" style="display:none">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div class="loading-text">Analysing EMG data...</div>
+          <div class="loading-steps" id="loading-steps">
+            <div class="loading-step active" id="ls1">⟳ Reading chart values...</div>
+            <div class="loading-step" id="ls2">○ Identifying compensation patterns...</div>
+            <div class="loading-step" id="ls3">○ Generating plain language summary...</div>
+            <div class="loading-step" id="ls4">○ Building action plan...</div>
+            <div class="loading-step" id="ls5">○ Compiling full report...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="results-block" style="display:none" class="results"></div>
+
+    </div>
+
+    <!-- DECISION TREE PANEL -->
+    <div id="panel-tree" class="panel tree-panel" style="display:none;overflow-y:auto;">
+      <div id="tree-content"></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+// ===================== STATE =====================
+let apiKey = '';
+let uploadedImages = []; // {file, dataUrl, name}
+const TS = { injury: null, mech: null, hist: null, move: null, limb: null };
+
+// ===================== API KEY =====================
+function saveApiKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k.startsWith('sk-ant')) {
+    alert('That doesn\'t look like a valid API key. It should start with sk-ant-');
+    return;
+  }
+  apiKey = k;
+  document.getElementById('api-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+  const name = document.getElementById('athlete-name-global').value.trim();
+  if (name) document.getElementById('ctx-athlete').value = name;
+  document.getElementById('org-label').textContent = 'Skinetix · EMG Tool';
+}
+
+function showApiScreen() {
+  document.getElementById('api-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+}
+
+// ===================== TABS =====================
+function switchTab(tab) {
+  document.getElementById('panel-analyse').style.display = tab === 'analyse' ? 'block' : 'none';
+  document.getElementById('panel-tree').style.display = tab === 'tree' ? 'block' : 'none';
+  document.getElementById('tab-analyse').classList.toggle('active', tab === 'analyse');
+  document.getElementById('tab-tree').classList.toggle('active', tab === 'tree');
+}
+
+function showTab(tab, el) {}
+function treeNav(inj, el) {
+  switchTab('tree');
+  document.getElementById('tab-tree').classList.add('active');
+  document.getElementById('tab-analyse').classList.remove('active');
+  document.querySelectorAll('.nav-item[data-injury]').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  TS.injury = inj; TS.mech = null; TS.hist = null; TS.move = null; TS.limb = null;
+  renderTree();
+}
+
+// ===================== FILE UPLOAD =====================
+function dragOver(e) { e.preventDefault(); document.getElementById('upload-area').classList.add('drag'); }
+function dragLeave(e) { document.getElementById('upload-area').classList.remove('drag'); }
+function dropFiles(e) {
+  e.preventDefault();
+  document.getElementById('upload-area').classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages.push({ file, dataUrl: e.target.result, name: file.name });
+      renderImages();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderImages() {
+  const grid = document.getElementById('images-grid');
+  const form = document.getElementById('context-form');
+  grid.innerHTML = uploadedImages.map((img, i) => `
+    <div class="img-thumb">
+      <img src="${img.dataUrl}" alt="${img.name}">
+      <div class="img-thumb-label">${img.name.length > 20 ? img.name.slice(0,18)+'...' : img.name}</div>
+      <button class="img-remove" onclick="removeImage(${i})">×</button>
+    </div>`).join('');
+  form.style.display = uploadedImages.length > 0 ? 'block' : 'none';
+}
+
+function removeImage(i) {
+  uploadedImages.splice(i, 1);
+  renderImages();
+}
+
+// ===================== ANALYSIS =====================
+async function runAnalysis() {
+  if (!apiKey) { showApiScreen(); return; }
+  if (uploadedImages.length === 0) { showError('Please upload at least one EMG chart image.'); return; }
+
+  const athlete = document.getElementById('ctx-athlete').value || 'the athlete';
+  const injuryType = document.getElementById('ctx-injury-type').value || 'unknown injury type';
+  const muscle = document.getElementById('ctx-muscle').value || 'unknown muscle';
+  const leg = document.getElementById('ctx-leg').value || 'unknown leg';
+  const mechanism = document.getElementById('ctx-mechanism').value || 'unknown mechanism';
+  const timeInj = document.getElementById('ctx-time').value || 'unknown timeframe';
+  const history = document.getElementById('ctx-history').value || 'unknown history';
+  const movement = document.getElementById('ctx-movement').value || 'unknown movement';
+  const audience = document.getElementById('ctx-audience').value;
+  const notes = document.getElementById('ctx-notes').value;
+  const phases = selectedPhases.length ? selectedPhases.join(', ') : 'all phases';
+
+  document.getElementById('error-box').style.display = 'none';
+  document.getElementById('results-block').style.display = 'none';
+  document.getElementById('loading-block').style.display = 'block';
+  document.getElementById('analyse-btn').disabled = true;
+
+  // Animate loading steps
+  const steps = ['ls1','ls2','ls3','ls4','ls5'];
+  let si = 0;
+  const stepInterval = setInterval(() => {
+    if (si > 0) { document.getElementById(steps[si-1]).classList.remove('active'); document.getElementById(steps[si-1]).classList.add('done'); document.getElementById(steps[si-1]).textContent = '✓ ' + document.getElementById(steps[si-1]).textContent.slice(2); }
+    if (si < steps.length) { document.getElementById(steps[si]).classList.add('active'); document.getElementById(steps[si]).textContent = '⟳ ' + document.getElementById(steps[si]).textContent.slice(2); }
+    si++;
+    if (si >= steps.length) clearInterval(stepInterval);
+  }, 1800);
+
+  try {
+    const imageContents = uploadedImages.map(img => ({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: img.file.type,
+        data: img.dataUrl.split(',')[1]
+      }
+    }));
+
+    const audienceNote = audience === 'coach'
+      ? 'Write for a coach or sports director with no medical background. Use plain, direct language. No jargon.'
+      : audience === 'physio'
+      ? 'Write for a physiotherapist or sport scientist. You can use technical terms.'
+      : 'Write a plain language summary first, then a technical section for clinicians.';
+
+    const prompt = `You are an expert sport scientist specialising in EMG analysis of lower limb neuromuscular function. You integrate clinical injury context with EMG data to provide precise, actionable interpretations.
+
+ATHLETE: ${athlete}
+
+INJURY PROFILE:
+- Injury type: ${injuryType}
+- Injured / focus muscle: ${muscle}
+- Injured leg: ${leg}
+- Injury mechanism: ${mechanism}
+- Time since injury: ${timeInj}
+- Injury history: ${history}
+
+MOVEMENT TESTED: ${movement}
+PHASES TO FOCUS ON: ${phases}
+ADDITIONAL CONTEXT: ${notes || 'None'}
+AUDIENCE: ${audienceNote}
+
+Analyse the uploaded EMG bar charts carefully. Read ALL numerical values from the charts (VM%, RF%, VL% for quadriceps; MH%, BF% for hamstrings). Compare left vs right legs. Identify asymmetries, compensation patterns, and risk flags.
+
+Return your analysis in this EXACT JSON structure (no markdown, no backticks, just raw JSON):
+
+{
+  "values_read": {
+    "description": "Brief description of what charts show and values extracted"
+  },
+  "plain_summary": "2-3 sentences in plain language explaining what is wrong and why it matters for performance and injury risk. Write as if explaining to the athlete or a non-medical coach.",
+  "key_findings": [
+    {"finding": "short finding title", "detail": "1-2 sentence explanation in plain language", "severity": "high|medium|low"}
+  ],
+  "actions": [
+    {"priority": "HIGH|MEDIUM|LOW", "title": "Action title", "description": "What to do and why, in plain language"}
+  ],
+  "full_report": {
+    "overall_mechanism": "Technical explanation of the neuromuscular compensation mechanism observed",
+    "phase_analysis": [
+      {"phase": "phase name", "quad_findings": "quad EMG findings for this phase", "hamstring_findings": "hamstring EMG findings", "risk": "risk interpretation"}
+    ],
+    "injury_implications": "Technical discussion of injury risk implications based on the patterns observed",
+    "literature_context": "How these findings relate to published literature on EMG and injury risk",
+    "return_to_sport": "Specific RTS or training recommendations based on the EMG profile"
+  }
+}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [...imageContents, { type: 'text', text: prompt }]
+        }]
+      })
+    });
+
+    clearInterval(stepInterval);
+    steps.forEach(s => { document.getElementById(s).classList.add('done'); });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'API error ' + response.status);
+    }
+
+    const data = await response.json();
+    const raw = data.content[0].text;
+
+    let result;
+    try {
+      result = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      // Try to extract JSON from text
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) result = JSON.parse(match[0]);
+      else throw new Error('Could not parse analysis response. Please try again.');
+    }
+
+    document.getElementById('loading-block').style.display = 'none';
+    document.getElementById('analyse-btn').disabled = false;
+    renderResults(result, athlete, movement, muscle, leg);
+
+  } catch(err) {
+    clearInterval(stepInterval);
+    document.getElementById('loading-block').style.display = 'none';
+    document.getElementById('analyse-btn').disabled = false;
+    showError('Analysis failed: ' + err.message);
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function renderResults(r, athlete, movement, muscle, leg) {
+  const block = document.getElementById('results-block');
+  block.style.display = 'flex';
+
+  const severityColor = { high: 'var(--red)', medium: 'var(--amber)', low: 'var(--green)' };
+  const priorityClass = { HIGH: 'p-high', MEDIUM: 'p-med', LOW: 'p-low' };
+
+  let html = '';
+
+  // Plain summary
+  html += `<div class="summary-card">
+    <h3>📋 PLAIN LANGUAGE SUMMARY</h3>
+    <div class="summary-text">${r.plain_summary || 'No summary generated.'}</div>
+  </div>`;
+
+  // Key findings
+  if (r.key_findings?.length) {
+    html += `<div class="actions-card" style="border-left:3px solid var(--blue);border-radius:0 10px 10px 0;">
+      <h3 style="color:var(--blue)">🔍 KEY FINDINGS</h3>`;
+    r.key_findings.forEach(f => {
+      const col = severityColor[f.severity] || 'var(--text2)';
+      html += `<div class="action-item" style="border-left:2px solid ${col}">
+        <div class="action-content">
+          <div class="action-title" style="color:${col}">${f.finding}</div>
+          <div class="action-desc">${f.detail}</div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Actions
+  if (r.actions?.length) {
+    html += `<div class="actions-card">
+      <h3>⚡ ACTION PLAN</h3>`;
+    r.actions.forEach(a => {
+      html += `<div class="action-item">
+        <span class="action-priority ${priorityClass[a.priority] || 'p-low'}">${a.priority}</span>
+        <div class="action-content">
+          <div class="action-title">${a.title}</div>
+          <div class="action-desc">${a.description}</div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Full report (collapsible)
+  if (r.full_report) {
+    const fr = r.full_report;
+    html += `<div class="full-report-card">
+      <div class="report-header">
+        <h3>📄 FULL TECHNICAL REPORT — ${athlete.toUpperCase()} · ${(muscle||"").toUpperCase()} · ${(leg||"").toUpperCase()} · ${movement.toUpperCase()}</h3>
+        <button class="report-toggle" onclick="toggleReport(this)">EXPAND ↓</button>
+      </div>
+      <div class="report-body" id="report-body">`;
+
+    if (fr.overall_mechanism) {
+      html += `<div class="report-section">
+        <h4>Overall compensation mechanism</h4>
+        <div class="report-text">${fr.overall_mechanism}</div>
+      </div>`;
+    }
+
+    if (fr.phase_analysis?.length) {
+      html += `<div class="report-section"><h4>Phase-by-phase analysis</h4>`;
+      fr.phase_analysis.forEach(p => {
+        html += `<div class="report-flag flag-amber" style="flex-direction:column;gap:4px;margin-bottom:8px;">
+          <strong style="font-size:12px;color:var(--amber)">${p.phase}</strong>
+          ${p.quad_findings ? `<div class="report-text"><strong>Quad:</strong> ${p.quad_findings}</div>` : ''}
+          ${p.hamstring_findings ? `<div class="report-text"><strong>Hamstrings:</strong> ${p.hamstring_findings}</div>` : ''}
+          ${p.risk ? `<div class="report-text" style="color:var(--red)"><strong>Risk:</strong> ${p.risk}</div>` : ''}
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    if (fr.injury_implications) {
+      html += `<div class="report-section">
+        <h4>Injury implications</h4>
+        <div class="report-text">${fr.injury_implications}</div>
+      </div>`;
+    }
+
+    if (fr.literature_context) {
+      html += `<div class="report-section">
+        <h4>Literature context</h4>
+        <div class="report-text">${fr.literature_context}</div>
+      </div>`;
+    }
+
+    if (fr.return_to_sport) {
+      html += `<div class="report-section">
+        <h4>Return to sport / training recommendations</h4>
+        <div class="report-text">${fr.return_to_sport}</div>
+      </div>`;
+    }
+
+    html += `</div></div>`;
+  }
+
+  block.innerHTML = html;
+  block.scrollIntoView({ behavior: 'smooth' });
+}
+
+function toggleReport(btn) {
+  const body = document.getElementById('report-body');
+  const open = body.classList.toggle('open');
+  btn.textContent = open ? 'COLLAPSE ↑' : 'EXPAND ↓';
+}
+
+
+// ===================== PHASE SELECTOR =====================
+const MOVEMENT_PHASES = {
+  CMJ: ['Concentric','Eccentric','Flight','Landing','All phases'],
+  SJ: ['Concentric','All phases'],
+  DVJ: ['Flight (pre-activation)','Initial contact (IC)','Early deceleration','All phases'],
+  Nordic: ['Full eccentric phase','Early (0-30° knee flexion)','Mid (30-60° knee flexion)','Late (60-90° knee flexion)'],
+  Nordbord: ['MVC (isometric only)'],
+  Sprint: ['Acceleration phase','Late swing','Early stance','Push-off','All phases'],
+  CoD: ['Plant phase','Deceleration','Push-off','All phases'],
+  Multiple: ['Concentric','Eccentric','Flight','Landing','Late swing','Early stance','Plant phase','All phases']
+};
+
+let selectedPhases = [];
+
+function updatePhases() {
+  const mv = document.getElementById('ctx-movement').value;
+  const row = document.getElementById('phase-row');
+  const chips = document.getElementById('phase-chips');
+  selectedPhases = [];
+  if (!mv || !MOVEMENT_PHASES[mv]) { row.style.display='none'; return; }
+  row.style.display='block';
+  const phases = MOVEMENT_PHASES[mv];
+  chips.innerHTML = phases.map(p =>
+    `<div class="chip" style="font-size:11px;padding:5px 11px" onclick="togglePhase(this,'${p}')">${p}</div>`
+  ).join('');
+  // Auto-select "All phases" if present
+  if (phases.includes('All phases')) {
+    const allChip = chips.querySelector('[onclick*="All phases"]');
+    if (allChip) { allChip.classList.add('active'); selectedPhases = ['All phases']; }
+  }
+}
+
+function togglePhase(el, phase) {
+  el.classList.toggle('active');
+  if (el.classList.contains('active')) {
+    if (phase === 'All phases') {
+      selectedPhases = ['All phases'];
+      document.querySelectorAll('#phase-chips .chip').forEach(c => {
+        if (!c.getAttribute('onclick').includes('All phases')) c.classList.remove('active');
+      });
+    } else {
+      selectedPhases = selectedPhases.filter(p => p !== 'All phases');
+      document.querySelectorAll('#phase-chips .chip').forEach(c => {
+        if (c.getAttribute('onclick').includes('All phases')) c.classList.remove('active');
+      });
+      selectedPhases.push(phase);
+    }
+  } else {
+    selectedPhases = selectedPhases.filter(p => p !== phase);
+  }
+}
+
+// ===================== DECISION TREE =====================
+const MECHS = {
+  quad:['Eccentric overload (decel / kicking)','Contusion / direct impact','Chronic overuse','Post-surgical'],
+  hamstring:['Eccentric overload (sprint / late swing)','Sudden acceleration','Chronic / tendinopathic','Post-surgical'],
+  acl:['Non-contact landing / cutting','Contact (valgus force)','Post-surgical ACL recon'],
+  pf:['Overuse / training load spike','Patellar tracking dysfunction','Post-surgical'],
+  adductor:['Rapid change of direction','Kicking / stretch load','Chronic groin pain'],
+  calf:['Explosive push-off','Sudden deceleration / landing','Chronic Achilles tendinopathy']
+};
+
+const INJ_LABELS={quad:'Quadriceps',hamstring:'Hamstrings',acl:'ACL / Ligament',pf:'Patellofemoral',adductor:'Adductors',calf:'Calf / Achilles'};
+const MOVE_LABELS={cmj:'CMJ',sj:'SJ',dvj:'DVJ',nordic:'Nordic',nordbord:'ISO-Prone / Nordbord',sprint:'Sprint',cod:'CoD'};
+const INJ_COLORS={quad:'var(--blue)',hamstring:'var(--amber)',acl:'var(--red)',pf:'var(--purple)',adductor:'var(--green)',calf:'var(--teal)'};
+
+const DB = {
+  quad:{
+    cmj:{
+      primary:[
+        {name:'VM:VL ratio',phases:['Eccentric','Flight','Landing'],desc:'VL suppression is the hallmark of quad compensation. Flag if VL <25% or asymmetry >10% vs contralateral.',lit:'Norris 1993; Powers 2000'},
+        {name:'RF relative contribution',phases:['Concentric','Eccentric','Flight'],desc:'RF over-recruitment >10% above contralateral signals VL bypass. Elevated RF in flight = feed-forward landing compromise.',lit:'Croisier 2002'}
+      ],
+      secondary:[
+        {name:'MH:BFLH ratio',phases:['Eccentric','Landing'],desc:'Medial hamstring dominance amplifies valgus risk when paired with VL deficit.',lit:'Hewett 2005'},
+        {name:'Q:H co-activation index',phases:['Concentric','Eccentric'],desc:'Assess whether reduced quad drive is compensated by excess hamstring co-activation.',lit:'Baratta 1988'}
+      ],
+      watch:[{name:'Bilateral symmetry index',phases:['All phases'],desc:'>15% asymmetry in any phase = flag.',lit:'Croisier 2002'}]
+    },
+    dvj:{
+      primary:[
+        {name:'VM:VL at initial contact',phases:['Landing IC (0-50ms)','Deceleration'],desc:'VL deficit at IC = frontal plane instability at peak load.',lit:'Hewett 2005'},
+        {name:'Quad pre-activation — flight',phases:['Flight'],desc:'Elevated RF pre-activation = VL bypass programmed before landing.',lit:'Myer 2011'}
+      ],
+      secondary:[{name:'Q:H ratio at IC',phases:['Landing IC'],desc:'Low hamstring co-activation at IC increases ACL loading.',lit:'Afschrift 2021'}],
+      watch:[{name:'Medial:Lateral composite',phases:['Landing'],desc:'VM+ST vs VL+BFLH — combined frontal + transverse plane risk index.',lit:'Hewett 2005'}]
+    },
+    sprint:{
+      primary:[{name:'RF:VL ratio — late swing',phases:['Late swing','Early stance'],desc:'VL suppression in late swing increases patellofemoral load at foot strike.',lit:'Kakehata 2022'}],
+      secondary:[{name:'VL onset timing',phases:['Early stance'],desc:'Delayed VL onset = reduced lateral patellar control at ground contact.',lit:'Chumanov 2011'}],
+      watch:[{name:'Bilateral VL BSI across speeds',phases:['Late swing >80% max'],desc:'VL asymmetry increases with speed.',lit:'Kakehata 2023'}]
+    },
+    sj:{
+      primary:[
+        {name:'VM:VL ratio',phases:['Concentric'],desc:'SJ removes SSC — reflects pure concentric motor programme deficit.',lit:'Merletti 1999'},
+        {name:'RF onset timing',phases:['Concentric'],desc:'Delayed RF pre-activation = compromised propulsive strategy.',lit:'Faigenbaum 2003'}
+      ],
+      secondary:[{name:'RF:VL amplitude ratio',phases:['Concentric'],desc:'Compare with CMJ to distinguish SSC-dependent vs independent compensation.',lit:'Bobbert 1996'}],
+      watch:[]
+    },
+    nordic:{
+      primary:[{name:'RF / quad activity',phases:['Full eccentric phase'],desc:'Any significant RF = anterior chain compensation, likely from pelvic tilt.',lit:'Bourne 2017'}],
+      secondary:[],watch:[{name:'Pelvic position cross-reference',phases:['Full eccentric phase'],desc:'Correlate with video before interpreting.',lit:'Delp 2021'}]
+    },
+    nordbord:{
+      primary:[{name:'VM:VL isometric ratio',phases:['MVC'],desc:'Distinguishes true strength deficit from dynamic compensation.',lit:'Merletti 1999'}],
+      secondary:[{name:'RF activation at MVC',phases:['MVC'],desc:'Elevated RF at MVC confirms CNS-level over-recruitment.',lit:'Croisier 2002'}],
+      watch:[]
+    },
+    cod:{
+      primary:[
+        {name:'VM:VL at plant phase',phases:['Plant phase'],desc:'VL suppression at plant = maximum frontal plane vulnerability.',lit:'Myer 2005'},
+        {name:'RF contribution at push-off',phases:['Push-off'],desc:'RF over-contribution compensates absent VL drive.',lit:'Hewett 2005'}
+      ],
+      secondary:[{name:'MH:BFLH at plant',phases:['Plant phase'],desc:'Medial hamstring dominance amplifies tibial internal rotation.',lit:'Hewett 2005'}],
+      watch:[]
+    }
+  },
+  hamstring:{
+    cmj:{
+      primary:[
+        {name:'BFLH:ST ratio — eccentric',phases:['Eccentric'],desc:'>70% MH = critical medial dominance. Most sensitive phase for lateral hamstring inhibition.',lit:'Zebis 2008'},
+        {name:'MH:BFLH ratio — landing',phases:['Landing'],desc:'Near-equal 50:50 at landing is NOT safe — BFLH dominance is the healthy target.',lit:'Myer 2005'}
+      ],
+      secondary:[{name:'H:Q co-activation',phases:['Concentric','Eccentric'],desc:'Hamstring co-activation during propulsion protects ACL.',lit:'Baratta 1988'}],
+      watch:[{name:'BFLH pre-activation — flight',phases:['Flight'],desc:'Low flight BFLH = compromised landing. Most upstream indicator.',lit:'Myer 2011'}]
+    },
+    dvj:{
+      primary:[
+        {name:'BFLH pre-activation — late flight',phases:['Late flight (50-100ms pre-IC)'],desc:'THE primary ACL/hamstring risk marker. BFLH must activate before IC.',lit:'Hewett 2005'},
+        {name:'MH:BFLH at IC and 100ms post',phases:['IC','Early decel'],desc:'Medial dominance at IC correlates with elevated valgus moment.',lit:'Zebis 2008'}
+      ],
+      secondary:[{name:'Bilateral BFLH at IC',phases:['IC'],desc:'BFLH asymmetry >15% = prospective ACL risk.',lit:'Croisier 2002'}],
+      watch:[{name:'ST fatigue index across reps',phases:['All reps'],desc:'MH fatigues faster — ratio shifts with accumulated reps.',lit:'Zebis 2008'}]
+    },
+    nordic:{
+      primary:[
+        {name:'ST:BFLH ratio',phases:['Full eccentric phase'],desc:'Should be ST-dominant (>55% ST). BF-dominant = compensation or ST inhibition.',lit:'Bourne 2017'},
+        {name:'Bilateral ST:BFLH asymmetry',phases:['Full eccentric phase'],desc:'One leg inverted = unilateral motor programme reorganisation.',lit:'Bourne 2017'}
+      ],
+      secondary:[{name:'BFLH peak activation angle',phases:['30-60° knee flexion'],desc:'Earlier peak = less lengthened recruitment = higher strain risk.',lit:'Hegyi 2019'}],
+      watch:[{name:'Pelvic tilt confounder',phases:['Full eccentric phase'],desc:'Correlate with video before attributing BF dominance to motor programme failure.',lit:'Delp 2021'}]
+    },
+    nordbord:{
+      primary:[
+        {name:'BFLH:MH isometric ratio',phases:['MVC'],desc:'ISO-Prone favours BFLH. MH dominance = structural BFLH underrecruitment.',lit:'Bourne 2017'},
+        {name:'Bilateral BFLH at MVC',phases:['MVC'],desc:'BFLH at MVC but absent in dynamic tasks = motor programme failure, not strength deficit.',lit:'Zebis 2008'}
+      ],
+      secondary:[{name:'Cross-test dissociation (ISO vs Nordic)',phases:['MVC vs Nordic'],desc:'>15% divergence = dynamic motor programme reorganisation.',lit:'Moreno-Perez 2020'}],
+      watch:[]
+    },
+    sprint:{
+      primary:[
+        {name:'BFLH peak EMG — late swing',phases:['Late swing (80-100%)'],desc:'Peak EMG at maximal length = primary hamstring strain injury moment.',lit:'Higashihara 2014'},
+        {name:'BFLH:ST ratio — late swing',phases:['Late swing'],desc:'BFLH should dominate. ST dominance = BFLH underloaded at highest-risk phase.',lit:'Kakehata 2022'}
+      ],
+      secondary:[{name:'BFLH onset timing',phases:['Late swing'],desc:'Delayed onset before ground contact = increased strain risk.',lit:'Higashihara 2014'}],
+      watch:[{name:'Fatigue BFLH:ST decline',phases:['Late swing (fatigued)'],desc:'Monitor late in sessions — injury risk window opens with fatigue.',lit:'Chumanov 2011'}]
+    },
+    cod:{
+      primary:[{name:'MH:BFLH at plant decel',phases:['Plant phase decel'],desc:'BFLH must dominate at plant to resist internal rotation.',lit:'Hewett 2005'}],
+      secondary:[{name:'Bilateral BFLH at plant',phases:['Plant phase'],desc:'Non-injured limb may compensate — check bilateral.',lit:'Myer 2011'}],
+      watch:[]
+    },
+    sj:{
+      primary:[{name:'H:Q co-activation',phases:['Concentric'],desc:'Baseline hamstring co-activation during isolated concentric effort.',lit:'Bobbert 1996'}],
+      secondary:[],watch:[]
+    }
+  },
+  acl:{
+    dvj:{
+      primary:[
+        {name:'BFLH pre-activation — late flight',phases:['Late flight (50-100ms pre-IC)'],desc:'Single highest-priority ACL risk marker. BFLH must activate before IC.',lit:'Hewett 2005'},
+        {name:'Bilateral MH:BFLH at IC',phases:['IC'],desc:'Asymmetry >15% at IC = prospective ACL injury risk.',lit:'Zebis 2008'}
+      ],
+      secondary:[
+        {name:'Q:H co-activation at IC',phases:['IC'],desc:'Target co-contraction index >31% for ACL protection.',lit:'Afschrift 2021'},
+        {name:'VM:VL ratio at IC',phases:['IC'],desc:'Combined frontal + transverse plane risk — highest sensitivity.',lit:'Hewett 2005'}
+      ],
+      watch:[{name:'VM+ST vs VL+BFLH composite',phases:['IC','Early decel'],desc:'Hewett composite — highest combined predictor for non-contact ACL.',lit:'Hewett 2005'}]
+    },
+    cmj:{
+      primary:[
+        {name:'MH:BFLH — eccentric + landing',phases:['Eccentric','Landing'],desc:'>65% MH = strongest EMG proxy for valgus risk.',lit:'Zebis 2008'},
+        {name:'BFLH pre-activation — flight',phases:['Flight'],desc:'Absent BFLH in flight = feed-forward failure.',lit:'Myer 2011'}
+      ],
+      secondary:[{name:'H:Q co-activation at landing',phases:['Landing'],desc:'ACL anterior shear protection.',lit:'Baratta 1988'}],
+      watch:[]
+    },
+    sprint:{
+      primary:[{name:'BFLH:ST ratio late swing',phases:['Late swing'],desc:'Post-ACLR — confirms lateral hamstring recovery.',lit:'Higashihara 2014'}],
+      secondary:[{name:'H:Q ratio early stance',phases:['Early stance'],desc:'Track quad recovery vs residual hamstring dominance.',lit:'Alentorn-Geli 2009'}],
+      watch:[]
+    },
+    cod:{
+      primary:[{name:'BFLH:MH at plant phase',phases:['Plant phase'],desc:'BFLH must dominate at plant to resist valgus and internal rotation.',lit:'Hewett 2005'}],
+      secondary:[],watch:[]
+    },
+    nordic:{
+      primary:[{name:'ST:BFLH bilateral ratio',phases:['Full eccentric phase'],desc:'Post-ACLR Nordic pattern — should still be ST-dominant.',lit:'Bourne 2017'}],
+      secondary:[],watch:[]
+    },
+    nordbord:{
+      primary:[{name:'BFLH MVC bilateral symmetry',phases:['MVC'],desc:'Foundational ACL recon RTS criterion.',lit:'Croisier 2002'}],
+      secondary:[{name:'Cross-test BFLH dissociation',phases:['MVC vs DVJ'],desc:'BFLH at MVC but absent in DVJ = highest RTS concern.',lit:'Moreno-Perez 2020'}],
+      watch:[]
+    },
+    sj:{primary:[{name:'H:Q co-activation',phases:['Concentric'],desc:'Low co-activation even in SJ = motor programme fails to protect ACL.',lit:'Bobbert 1996'}],secondary:[],watch:[]}
+  },
+  pf:{
+    cmj:{
+      primary:[
+        {name:'VM:VL ratio — all phases',phases:['Eccentric','Concentric','Landing'],desc:'Primary EMG target in PFPS. VM deficit reduces medial patellar stabilisation.',lit:'Powers 2000'},
+        {name:'VM onset timing vs VL',phases:['Eccentric','Landing'],desc:'Delayed VM >10ms = patellar tracking dysfunction even if amplitudes balanced.',lit:'Witvrouw 2004'}
+      ],
+      secondary:[{name:'RF:VL ratio — concentric',phases:['Concentric'],desc:'RF substitution increases patellofemoral joint reaction force.',lit:'Powers 2000'}],
+      watch:[{name:'VM:VL under fatigue (reps 3-5)',phases:['Landing rep 3-5'],desc:'VM fatigues faster — test across 5 consecutive CMJs.',lit:'Merletti 1999'}]
+    },
+    dvj:{
+      primary:[{name:'VM onset timing at IC',phases:['IC'],desc:'Earliest and most sensitive PFPS marker — VM delay at IC = inadequate patellar stabilisation at peak load.',lit:'Witvrouw 2004'}],
+      secondary:[{name:'VM:VL at 100ms post-IC',phases:['IC +100ms'],desc:'Peak patellofemoral compression window.',lit:'Powers 2000'}],
+      watch:[]
+    },
+    sprint:{primary:[{name:'VM:VL — stance phase',phases:['Early stance'],desc:'VM deficit during stance = patellar tendon overload.',lit:'Witvrouw 2004'}],secondary:[],watch:[]},
+    sj:{primary:[{name:'VM:VL concentric',phases:['Concentric'],desc:'Isolated concentric VM:VL without SSC.',lit:'Merletti 1999'}],secondary:[],watch:[]},
+    nordbord:{primary:[{name:'VM:VL isometric',phases:['MVC'],desc:'Baseline — structural vs task-driven imbalance.',lit:'Powers 2000'}],secondary:[],watch:[]},
+    nordic:{primary:[],secondary:[],watch:[]},
+    cod:{primary:[{name:'VM onset — plant phase',phases:['Plant phase'],desc:'Patellofemoral load peaks at plant. Delayed VM = unprotected lateral patellar shift.',lit:'Witvrouw 2004'}],secondary:[],watch:[]}
+  },
+  adductor:{
+    cmj:{
+      primary:[{name:'Adductor:abductor co-activation',phases:['Eccentric','Landing'],desc:'Asymmetric adductor dominance = groin strain risk.',lit:'Crow 2010'}],
+      secondary:[{name:'MH contribution at landing',phases:['Landing'],desc:'ST/SM as secondary adductors — elevated MH with adductor deficit = compensated medial hip.',lit:'Myer 2005'}],
+      watch:[{name:'Bilateral adductor BSI',phases:['Eccentric','Landing'],desc:'>15% asymmetry in groin history = flag.',lit:'Crow 2010'}]
+    },
+    cod:{
+      primary:[
+        {name:'Adductor peak — plant decel',phases:['Plant phase'],desc:'Maximum adductor demand in CoD. Peak at plant correlates with groin strain incidence.',lit:'Holmich 1999'},
+        {name:'Adductor:abductor ratio at plant',phases:['Plant phase'],desc:'Low abductor = medial collapse risk.',lit:'Crow 2010'}
+      ],
+      secondary:[],watch:[]
+    },
+    sprint:{primary:[{name:'Adductor longus — late swing',phases:['Late swing'],desc:'Asymmetric peak predicts groin injury in sprinting.',lit:'Holmich 1999'}],secondary:[],watch:[]},
+    dvj:{primary:[{name:'Adductor:abductor at IC',phases:['IC'],desc:'Hip frontal plane stability — adductor dominance without abductor = medial collapse.',lit:'Crow 2010'}],secondary:[],watch:[]},
+    sj:{primary:[],secondary:[],watch:[]},nordic:{primary:[],secondary:[],watch:[]},nordbord:{primary:[],secondary:[],watch:[]}
+  },
+  calf:{
+    cmj:{
+      primary:[
+        {name:'Gastrocnemius:soleus — push-off',phases:['Concentric'],desc:'Gastroc dominance = higher Achilles tendon strain risk in explosive plantarflexion.',lit:'Komi 1992'},
+        {name:'Gastroc onset timing — flight',phases:['Flight','IC'],desc:'Early gastroc pre-activation increases Achilles load at landing.',lit:'Bobbert 1996'}
+      ],
+      secondary:[{name:'Q:gastroc co-activation',phases:['Landing'],desc:'Reduced quad co-activation = gastroc overloaded at landing.',lit:'Afschrift 2021'}],
+      watch:[]
+    },
+    sprint:{
+      primary:[{name:'Gastroc:soleus — push-off',phases:['Push-off'],desc:'Sprint push-off gastroc dominance = primary Achilles injury indicator.',lit:'Komi 1992'}],
+      secondary:[{name:'Gastroc onset — late swing',phases:['Late swing'],desc:'Excessive early onset = increased Achilles strain at foot strike.',lit:'Chumanov 2011'}],
+      watch:[{name:'Bilateral gastroc BSI across speeds',phases:['Push-off >80% max'],desc:'Asymmetry worsens with speed.',lit:'Higashihara 2014'}]
+    },
+    dvj:{primary:[{name:'Gastroc pre-activation — flight',phases:['Flight'],desc:'Gastroc pre-activation determines Achilles load at IC.',lit:'Bobbert 1996'}],secondary:[],watch:[]},
+    sj:{primary:[{name:'Gastroc:soleus — concentric',phases:['Concentric'],desc:'Baseline plantarflexor strategy without SSC.',lit:'Bobbert 1996'}],secondary:[],watch:[]},
+    nordic:{primary:[],secondary:[],watch:[]},nordbord:{primary:[],secondary:[],watch:[]},
+    cod:{primary:[{name:'Gastroc amplitude at plant',phases:['Plant phase'],desc:'Achilles load during rapid direction change.',lit:'Komi 1992'}],secondary:[],watch:[]}
+  }
+};
+
+const HIST_MOD={
+  first:{cls:'success',col:'var(--green)',txt:'First occurrence: establish individual baseline. Use absolute values + phase-specific ratios.'},
+  recurrent:{cls:'danger',col:'var(--red)',txt:'Recurrent injury: bilateral symmetry index is the primary decision metric. Flag any ratio inversion.'},
+  'post-rehab':{cls:'info',col:'var(--blue)',txt:'Return to sport: prioritise dynamic tasks (DVJ, sprint). Isometric asymmetries should be resolved before dynamic testing.'},
+  contralateral:{cls:'',col:'var(--amber)',txt:'Contralateral: do not use as healthy reference. Contralateral limbs frequently show compensation over-recruitment.'},
+  chronic:{cls:'',col:'var(--purple)',txt:'Chronic / overuse: fatigue-weighted metrics most informative. Test across multiple reps or late-session.'}
+};
+
+function renderTree() {
+  if (!TS.injury) { document.getElementById('tree-content').innerHTML = '<div class="empty-msg">Select an injury type from the sidebar to begin.</div>'; return; }
+  const color = INJ_COLORS[TS.injury];
+  let html = `<div style="margin-bottom:20px;font-family:var(--mono);font-size:10px;color:var(--text3)">${INJ_LABELS[TS.injury]}${TS.mech?' › '+TS.mech.split('(')[0].trim():''}${TS.hist?' › '+TS.hist:''}${TS.move?' › '+MOVE_LABELS[TS.move]:''}${TS.limb?' › '+TS.limb:''}</div>`;
+
+  // Mech
+  html += `<div class="step-block"><div class="step-hdr"><span class="step-num">01</span><span class="step-title">Injury mechanism</span></div><div class="chips">`;
+  MECHS[TS.injury].forEach(m => { html += `<div class="chip${TS.mech===m?' active':''}" onclick="tpick('mech',\`${m}\`)">${m}</div>`; });
+  html += `</div></div><div class="divider-line"></div>`;
+  if (!TS.mech) { document.getElementById('tree-content').innerHTML = html; return; }
+
+  // History
+  html += `<div class="step-block"><div class="step-hdr"><span class="step-num">02</span><span class="step-title">Injury history</span></div><div class="chips">`;
+  [['first','First occurrence'],['recurrent','Recurrent / reinjury'],['post-rehab','Post-rehab / RTS'],['contralateral','Contralateral concern'],['chronic','Chronic / overuse']].forEach(([v,l]) => {
+    html += `<div class="chip${TS.hist===v?' active':''}" onclick="tpick('hist','${v}')">${l}</div>`;
+  });
+  html += `</div></div><div class="divider-line"></div>`;
+  if (!TS.hist) { document.getElementById('tree-content').innerHTML = html; return; }
+
+  // Movement
+  html += `<div class="step-block"><div class="step-hdr"><span class="step-num">03</span><span class="step-title">Movement tested</span></div><div class="chips">`;
+  Object.entries(MOVE_LABELS).forEach(([v,l]) => {
+    html += `<div class="chip${TS.move===v?' active':''}" onclick="tpick('move','${v}')">${l}</div>`;
+  });
+  html += `</div></div><div class="divider-line"></div>`;
+  if (!TS.move) { document.getElementById('tree-content').innerHTML = html; return; }
+
+  // Limb
+  html += `<div class="step-block"><div class="step-hdr"><span class="step-num">04</span><span class="step-title">Limb context</span></div><div class="chips">`;
+  [['ipsi','Ipsilateral (injured)'],['contra','Contralateral'],['both','Bilateral comparison']].forEach(([v,l]) => {
+    html += `<div class="chip${TS.limb===v?' active':''}" onclick="tpick('limb','${v}')">${l}</div>`;
+  });
+  html += `</div></div><div class="divider-line"></div>`;
+  if (!TS.limb) { document.getElementById('tree-content').innerHTML = html; return; }
+
+  // Results
+  const data = DB[TS.injury]?.[TS.move];
+  const mod = HIST_MOD[TS.hist];
+
+  if (mod) html += `<div class="modifier-box" style="border-left-color:${mod.col};margin-bottom:16px"><strong>History note:</strong> ${mod.txt}</div>`;
+  if (TS.limb==='contra') html += `<div class="modifier-box" style="border-left-color:var(--amber);margin-bottom:16px"><strong>Contralateral:</strong> Focus on compensatory patterns and bilateral asymmetry indices.</div>`;
+
+  if (!data || (!data.primary?.length && !data.secondary?.length && !data.watch?.length)) {
+    html += `<div class="empty-msg">No specific protocol defined for this combination. Use bilateral symmetry index as starting point.</div>`;
+  } else {
+    const rg = (arr, tag, tagClass, phaseClass) => {
+      if (!arr?.length) return '';
+      let g = `<div style="margin-bottom:20px"><div class="group-label" style="color:${tagClass==='tag-primary'?'var(--blue)':tagClass==='tag-secondary'?'var(--amber)':'var(--red)'}">${tag}</div>`;
+      arr.forEach(m => {
+        g += `<div class="metric-card"><div class="metric-top"><div><div class="metric-name">${m.name}</div><div class="phase-tags">${m.phases.map(p=>`<span class="phase-tag ${phaseClass}">${p}</span>`).join('')}</div></div><span class="metric-tag ${tagClass}">${tag}</span></div><div class="metric-desc">${m.desc}</div>${m.lit?`<div class="lit-ref">📖 ${m.lit}</div>`:''}</div>`;
+      });
+      return g + `</div>`;
+    };
+    html += rg(data.primary,'PRIMARY','tag-primary','phase-primary');
+    html += rg(data.secondary,'SECONDARY','tag-secondary','phase-secondary');
+    html += rg(data.watch,'WATCH','tag-watch','phase-watch');
+  }
+
+  document.getElementById('tree-content').innerHTML = html;
+}
+
+function tpick(field, val) {
+  TS[field] = val;
+  if (field==='mech'){TS.hist=null;TS.move=null;TS.limb=null;}
+  if (field==='hist'){TS.move=null;TS.limb=null;}
+  if (field==='move'){TS.limb=null;}
+  renderTree();
+  setTimeout(()=>{ document.getElementById('panel-tree').scrollTop = document.getElementById('panel-tree').scrollHeight; }, 50);
+}
+
+function resetAll() {
+  Object.keys(TS).forEach(k=>TS[k]=null);
+  uploadedImages=[];
+  renderImages();
+  document.getElementById('results-block').style.display='none';
+  document.getElementById('error-box').style.display='none';
+  document.querySelectorAll('.nav-item[data-injury]').forEach(n=>n.classList.remove('active'));
+  renderTree();
+}
+</script>
+</body>
+</html>
